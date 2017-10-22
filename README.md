@@ -30,6 +30,7 @@ C# implements a default constructor for this class, such that we can instantiate
     var vehicle = new Vehicle();
 
 This isn't very helpful because we have no way of initializing the fields `make`, `model`, and `year`.
+
 Constructors with Parameters
 -
 The Vehicle class above becomes more useful when we can initialize the fields using a constructor that allows us to pass in the values:
