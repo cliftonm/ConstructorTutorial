@@ -1,6 +1,10 @@
+
+Constructors in C# - A Tutorial
+==
+
 Introduction
-============
-This short tutorial covers the pros and cons of different constructor usage in C#.
+-
+This short tutorial covers different C# constructor syntax, their usage, and some of the pros and cons.
 
 Classes
 -
@@ -225,3 +229,182 @@ We can construct vehicles without expectations of the parameter order (as long w
     var vehicle1 = new Vehicle(make : "Suzuki", model: "SX4", year: 1999);
     var vehicle2 = new Vehicle(model: "SX4", year: 1999, make: "Suzuki");
 
+Named arguments are optional if the constructor provides a default value.  The constructor call allows you to mix both unnamed and named required and named optional arguments.  Given:
+
+        public Vehicle(string make, string model = "", int year = 2001)
+        {
+            Make = make;
+            Model = model;
+            Year = year;
+        }
+
+The class can be instantiated like this:
+
+    var vehicle = new Vehicle("Suzuki", year: 1999);
+
+This approach has a distinct advantage when dealing with optional parameters, in that only the options that you want to specify need to be specified.  Without named parameters, the class would either have to provide all variations of construction, or the optional parameters would have to be provided with their defaults (which you might now know) until you get to the parameter you want to explicitly set.  For example:
+
+    var vehicle = new Vehicle("Suzuki", "", 1999);
+
+In the above code, we have to provide the default for `make` so that we can get to the argument in the constructor for specifying `year`.
+
+Cloning
+-
+
+A common use case for a constructor is to clone the object, for example:
+
+        public Vehicle(Vehicle toClone)
+        {
+            Make = toClone.Make;
+            Model = toClone.Model;
+            Year = toClone.Year;
+        }
+
+Singletons
+-
+
+When only a single instance of a class should ever be instantiated, a common practice for such "singleton" classes is to create a `protected` or `private` constructor along with a `public` `static` "factory" method and a `static` field for the single instance of the class:
+
+    public class MoonVehicle
+    {
+        protected static MoonVehicle instance;
+
+        public static MoonVehicle Instance
+        {
+            get
+            {
+                if (instance == null) new MoonVehicle();
+
+                return instance;
+            }
+        }
+
+        protected MoonVehicle()
+        {
+            instance = this;
+        }
+    }
+
+Here there is the possibility of one and only one moon vehicle, and we have to use a singleton factory to obtain that single instance:
+
+    var moonVehicle = MoonVehicle.Instance;
+
+Attempting to instantiate `MoonVehicle`:
+
+    var moonVehicle = new MoonVehicle();
+
+gives us a compile-time error:
+
+    'MoonVehicle.MoonVehicle()' is inaccessible due to its protection level
+
+
+Routing Multiple Constructors to a Single Constructor
+-
+
+Often a class performs some additional initialization during construction.  When the class implements multiple constructors, it can be easy to forget to call the initialization method.  For example: (note that this is a contrived example):
+
+    public class Vehicle
+    {
+        public string Make { get; protected set; }
+        public string Model { get; protected set; }
+        public int Year { get; protected set; }
+
+        protected int numberOfPassengers;
+
+        public Vehicle() { }
+
+        public Vehicle(Vehicle toClone)
+        {
+            Make = toClone.Make;
+            Model = toClone.Model;
+            Year = toClone.Year;
+            numberOfPassengers = GetNumberOfPassengers();
+        }
+
+        public Vehicle(string make, string model, int year)
+        {
+            Make = make;
+            Model = model;
+            Year = year;
+            numberOfPassengers = GetNumberOfPassengers();
+        }
+
+        protected int GetNumberOfPassengers()
+        {
+            return 4;
+        }
+
+Note that both constructors have to call `GetNumberOfPassengers`.  This can be avoided using the `this` syntax in the constructor that clones the class:
+
+        public Vehicle(Vehicle toClone) :
+            this(toClone.Make, toClone.Model, toClone.Year)
+        {
+        }
+
+        public Vehicle(string make, string model, int year)
+        {
+            Make = make;
+            Model = model;
+            Year = year;
+            numberOfPassengers = GetNumberOfPassengers();
+        }
+
+This form is particularly useful when there is a single constructor that "does all the initialization" and all other constructors (, either exposed as public or as internal constructors) are derivatives of this main constructor.  The opposite is also sometimes useful -- the "does all the initialization" constructor might be `protected` or `private`, and the exposed constructors call into it using the `this` syntax.
+
+Named arguments can be used with this form of construction as well:
+
+        public Vehicle(string make) :
+            this(make, model: "", year: 2001)
+        {
+        }
+
+as well as with default values in the final constructor:
+
+        public Vehicle(string make) :
+            this(make, year: 2001)
+        {
+        }
+
+        public Vehicle(string make, string model = "", int year = 1991)
+        {
+            Make = make;
+            Model = model;
+            Year = year;
+            numberOfPassengers = GetNumberOfPassengers();
+        }
+
+Finally, the syntax for named arguments is more "Javascript-like" for initialization of structures, so you'll see this form a lot in ASP.NET/Razor cshtml files.  For example:
+
+    WebGrid grid = new WebGrid(Model, defaultSort: "FirstName", rowsPerPage : 5); 
+
+Base Classes
+-
+C# is a single-inheritance language, meaning that a subclass cannot be derived from more than one super-class.  The explicit parameter argument and named argument call to a base class can be used.  A couple examples, assuming some default values in the constructor for `Vehicle`:
+
+    public class Truck : Vehicle
+    {
+        public Truck() : base("Ford", "F-150", 2017)
+        {
+        }
+
+        public Truck(int year) : base("Ford", year: year)
+        {
+        }
+    }
+
+It is useful to note that the this approach for a single constructor initialization can still be used:
+
+    public class Truck : Vehicle
+    {
+        public Truck() : this(2017)
+        {
+        }
+
+        public Truck(int year) : base("Ford", year: year)
+        {
+        }
+    }
+
+Conclusion
+-
+This tutorial was written using the awesome [StackEdit](https://stackedit.io/editor) editor.
